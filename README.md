@@ -111,6 +111,14 @@ npm run test:e2e
 └── __tests__/            # Test files
 ```
 
+## 📚 Documentation
+
+For detailed information, please refer to our comprehensive documentation:
+
+- **[Application Overview](docs/APPLICATION_OVERVIEW.md)** - Complete system architecture and features
+- **[Setup & Deployment Guide](docs/SETUP_AND_DEPLOYMENT.md)** - Development setup and production deployment
+- **[Branding & Theming Guide](docs/BRANDING_AND_THEMING.md)** - Customize appearance and branding
+
 ## License
 
 MIT License
