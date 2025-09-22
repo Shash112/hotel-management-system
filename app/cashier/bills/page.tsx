@@ -1,347 +1,231 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { Header } from '@/components/layout/header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Search, Filter, Eye, Download, Print, Receipt, DollarSign, CheckCircle, Clock } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Receipt, DollarSign, CheckCircle, Clock, Download, Print } from 'lucide-react'
 
-interface Bill {
-  id: string
-  billNumber: string
-  orderId: string
-  order: {
-    id: string
-    table: {
-      name: string
+export default function CashierBillsPage() {
+  // Mock data for now - will be replaced with real API calls later
+  const mockBills = [
+    { 
+      id: '1', 
+      billNumber: 'BILL-001', 
+      tableNumber: '5', 
+      totalAmount: 1250, 
+      status: 'PAID', 
+      paymentMethod: 'CASH',
+      createdAt: '2024-01-20T14:30:00Z',
+      items: 4
+    },
+    { 
+      id: '2', 
+      billNumber: 'BILL-002', 
+      tableNumber: '3', 
+      totalAmount: 890, 
+      status: 'PENDING', 
+      paymentMethod: 'CARD',
+      createdAt: '2024-01-20T15:45:00Z',
+      items: 3
+    },
+    { 
+      id: '3', 
+      billNumber: 'BILL-003', 
+      tableNumber: '7', 
+      totalAmount: 2100, 
+      status: 'PAID', 
+      paymentMethod: 'UPI',
+      createdAt: '2024-01-20T16:15:00Z',
+      items: 6
+    },
+    { 
+      id: '4', 
+      billNumber: 'BILL-004', 
+      tableNumber: '2', 
+      totalAmount: 650, 
+      status: 'PAID', 
+      paymentMethod: 'CASH',
+      createdAt: '2024-01-20T17:00:00Z',
+      items: 2
+    },
+  ]
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString()
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      PAID: 'bg-green-100 text-green-800',
+      PENDING: 'bg-yellow-100 text-yellow-800',
+      CANCELLED: 'bg-red-100 text-red-800'
     }
-    createdAt: string
+    
+    return (
+      <Badge className={statusConfig[status as keyof typeof statusConfig] || 'bg-gray-100 text-gray-800'}>
+        {status}
+      </Badge>
+    )
   }
-  customerName?: string
-  customerPhone?: string
-  subtotal: number
-  taxAmount: number
-  cgstAmount: number
-  sgstAmount: number
-  igstAmount: number
-  serviceCharge: number
-  finalAmount: number
-  isPaid: boolean
-  createdAt: string
-}
 
-export default function CashierBills() {
-  const [bills, setBills] = useState<Bill[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-
-  useEffect(() => {
-    fetchBills()
-  }, [])
-
-  const fetchBills = async () => {
-    try {
-      const response = await fetch('/api/bills')
-      if (response.ok) {
-        const data = await response.json()
-        setBills(data)
-      }
-    } catch (error) {
-      toast.error('Failed to load bills')
-    } finally {
-      setLoading(false)
+  const getPaymentMethodBadge = (method: string) => {
+    const methodConfig = {
+      CASH: 'bg-blue-100 text-blue-800',
+      CARD: 'bg-purple-100 text-purple-800',
+      UPI: 'bg-green-100 text-green-800',
+      WALLET: 'bg-orange-100 text-orange-800'
     }
+    
+    return (
+      <Badge className={methodConfig[method as keyof typeof methodConfig] || 'bg-gray-100 text-gray-800'}>
+        {method}
+      </Badge>
+    )
   }
 
-  const filteredBills = bills.filter(bill => {
-    const matchesSearch = bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bill.order.table.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (bill.customerName && bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'paid' && bill.isPaid) ||
-                         (statusFilter === 'unpaid' && !bill.isPaid)
-    return matchesSearch && matchesStatus
-  })
+  const totalRevenue = mockBills
+    .filter(bill => bill.status === 'PAID')
+    .reduce((sum, bill) => sum + bill.totalAmount, 0)
 
-  const getBillStats = () => {
-    const stats = {
-      total: bills.length,
-      paid: bills.filter(b => b.isPaid).length,
-      unpaid: bills.filter(b => !b.isPaid).length,
-      totalRevenue: bills.reduce((sum, bill) => sum + bill.finalAmount, 0),
-      paidRevenue: bills.filter(b => b.isPaid).reduce((sum, bill) => sum + bill.finalAmount, 0),
-      pendingRevenue: bills.filter(b => !b.isPaid).reduce((sum, bill) => sum + bill.finalAmount, 0)
-    }
-    return stats
-  }
-
-  const stats = getBillStats()
-
-  const handlePrintBill = (billId: string) => {
-    // This would integrate with your bill generation component
-    toast.success('Bill sent to printer!')
-  }
-
-  const handleDownloadBill = (billId: string) => {
-    // This would generate and download PDF
-    toast.success('Bill downloaded!')
-  }
-
-  const handleMarkAsPaid = async (billId: string) => {
-    try {
-      const response = await fetch(`/api/bills/${billId}/pay`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        toast.success('Bill marked as paid!')
-        fetchBills()
-      } else {
-        toast.error('Failed to mark bill as paid')
-      }
-    } catch (error) {
-      toast.error('Failed to mark bill as paid')
-    }
-  }
+  const pendingBills = mockBills.filter(bill => bill.status === 'PENDING').length
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Bill Generation</h1>
-          <p className="text-muted-foreground">Manage bills and generate GST-compliant invoices</p>
+    <>
+      <Header title="Bill Generation" description="Generate and manage bills for customer orders." />
+      <div className="container mx-auto py-8 space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-800">Today's Revenue</p>
+                  <p className="text-2xl font-bold text-green-900">{formatCurrency(totalRevenue)}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-800">Total Bills</p>
+                  <p className="text-2xl font-bold text-blue-900">{mockBills.length}</p>
+                </div>
+                <Receipt className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Pending Bills</p>
+                  <p className="text-2xl font-bold text-yellow-900">{pendingBills}</p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200 bg-purple-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-800">Paid Bills</p>
+                  <p className="text-2xl font-bold text-purple-900">{mockBills.filter(bill => bill.status === 'PAID').length}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        {/* Search and Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gray-100 rounded-full">
-                <Receipt className="h-4 w-4 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-sm text-gray-500">Total Bills</p>
-              </div>
+          <CardHeader>
+            <CardTitle>Bill Management</CardTitle>
+            <CardDescription>Search and manage customer bills</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-6">
+              <Input placeholder="Search by bill number or table..." className="flex-1" />
+              <Button variant="outline">Filter</Button>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-full">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.paid}</p>
-                <p className="text-sm text-gray-500">Paid Bills</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-yellow-100 rounded-full">
-                <Clock className="h-4 w-4 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.unpaid}</p>
-                <p className="text-sm text-gray-500">Pending Bills</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-100 rounded-full">
-                <DollarSign className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Total Revenue</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-full">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">₹{stats.paidRevenue.toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Paid Revenue</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-orange-100 rounded-full">
-                <Clock className="h-4 w-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">₹{stats.pendingRevenue.toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Pending Revenue</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by bill number, table, or customer..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Bills</SelectItem>
-                <SelectItem value="paid">Paid Bills</SelectItem>
-                <SelectItem value="unpaid">Unpaid Bills</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bills Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Bills ({filteredBills.length})
-          </CardTitle>
-          <CardDescription>
-            GST-compliant bills and invoices
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Bill Number</TableHead>
-                <TableHead>Table</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Tax (GST)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBills.map((bill) => (
-                <TableRow key={bill.id}>
-                  <TableCell className="font-mono text-sm font-medium">
-                    {bill.billNumber}
-                  </TableCell>
-                  <TableCell>{bill.order.table.name}</TableCell>
-                  <TableCell>
-                    {bill.customerName ? (
-                      <div>
-                        <div className="font-medium">{bill.customerName}</div>
-                        {bill.customerPhone && (
-                          <div className="text-sm text-gray-500">{bill.customerPhone}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">Walk-in customer</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">₹{bill.finalAmount}</div>
-                      <div className="text-sm text-gray-500">
-                        Subtotal: ₹{bill.subtotal}
-                      </div>
+            {/* Bills List */}
+            <div className="space-y-4">
+              {mockBills.map((bill) => (
+                <div key={bill.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{bill.billNumber}</h3>
+                      {getStatusBadge(bill.status)}
+                      {getPaymentMethodBadge(bill.paymentMethod)}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>CGST: ₹{bill.cgstAmount}</div>
-                      <div>SGST: ₹{bill.sgstAmount}</div>
-                      {bill.igstAmount > 0 && <div>IGST: ₹{bill.igstAmount}</div>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={bill.isPaid ? "default" : "outline"}>
-                      {bill.isPaid ? (
-                        <>
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Paid
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="h-3 w-3 mr-1" />
-                          Pending
-                        </>
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {new Date(bill.createdAt).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
+                    <p className="text-sm text-muted-foreground">Table {bill.tableNumber} • {bill.items} items</p>
+                    <p className="text-sm text-muted-foreground">{formatDate(bill.createdAt)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-lg">{formatCurrency(bill.totalAmount)}</p>
+                    <div className="flex gap-2 mt-2">
                       <Button size="sm" variant="outline">
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Download className="mr-1 h-3 w-3" />
+                        Download
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handlePrintBill(bill.id)}>
-                        <Print className="h-4 w-4 mr-1" />
+                      <Button size="sm" variant="outline">
+                        <Print className="mr-1 h-3 w-3" />
                         Print
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDownloadBill(bill.id)}>
-                        <Download className="h-4 w-4 mr-1" />
-                        PDF
-                      </Button>
-                      {!bill.isPaid && (
-                        <Button size="sm" onClick={() => handleMarkAsPaid(bill.id)}>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Mark Paid
-                        </Button>
+                      {bill.status === 'PENDING' && (
+                        <Button size="sm">Process Payment</Button>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Methods Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Methods Summary</CardTitle>
+            <CardDescription>Breakdown of payments by method</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground">Cash</p>
+                <p className="text-2xl font-bold">₹{mockBills.filter(b => b.paymentMethod === 'CASH' && b.status === 'PAID').reduce((sum, b) => sum + b.totalAmount, 0)}</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground">Card</p>
+                <p className="text-2xl font-bold">₹{mockBills.filter(b => b.paymentMethod === 'CARD' && b.status === 'PAID').reduce((sum, b) => sum + b.totalAmount, 0)}</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground">UPI</p>
+                <p className="text-2xl font-bold">₹{mockBills.filter(b => b.paymentMethod === 'UPI' && b.status === 'PAID').reduce((sum, b) => sum + b.totalAmount, 0)}</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground">Wallet</p>
+                <p className="text-2xl font-bold">₹0</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   )
 }
