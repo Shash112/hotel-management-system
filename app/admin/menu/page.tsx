@@ -1,401 +1,141 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { Header } from '@/components/layout/header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus, Edit, Trash2, Search, Filter, Menu, DollarSign } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Plus, Menu, DollarSign } from 'lucide-react'
 
-interface MenuItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  category: {
-    id: string
-    name: string
+export default function AdminMenuPage() {
+  // Mock data for now - will be replaced with real API calls later
+  const mockMenuItems = [
+    { id: '1', name: 'Chicken Biryani', description: 'Fragrant basmati rice with tender chicken', price: 299, category: { name: 'Main Course' }, isVeg: false, isActive: true },
+    { id: '2', name: 'Paneer Tikka', description: 'Grilled cottage cheese with spices', price: 199, category: { name: 'Appetizer' }, isVeg: true, isActive: true },
+    { id: '3', name: 'Gulab Jamun', description: 'Sweet milk dumplings in rose syrup', price: 89, category: { name: 'Dessert' }, isVeg: true, isActive: true },
+    { id: '4', name: 'Dal Makhani', description: 'Creamy black lentils with butter', price: 179, category: { name: 'Main Course' }, isVeg: true, isActive: true },
+    { id: '5', name: 'Butter Chicken', description: 'Tender chicken in rich tomato gravy', price: 329, category: { name: 'Main Course' }, isVeg: false, isActive: true },
+  ]
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount)
   }
-  isVeg: boolean
-  isAvailable: boolean
-  sortOrder: number
-}
-
-interface Category {
-  id: string
-  name: string
-  description: string
-  sortOrder: number
-}
-
-export default function AdminMenu() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    categoryId: '',
-    isVeg: false,
-    isAvailable: true,
-    sortOrder: ''
-  })
-
-  useEffect(() => {
-    fetchMenuItems()
-    fetchCategories()
-  }, [])
-
-  const fetchMenuItems = async () => {
-    try {
-      const response = await fetch('/api/menu-items')
-      if (response.ok) {
-        const data = await response.json()
-        setMenuItems(data)
-      }
-    } catch (error) {
-      toast.error('Failed to load menu items')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/categories')
-      if (response.ok) {
-        const data = await response.json()
-        setCategories(data)
-      }
-    } catch (error) {
-      toast.error('Failed to load categories')
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const method = editingItem ? 'PUT' : 'POST'
-      const url = editingItem ? `/api/menu-items/${editingItem.id}` : '/api/menu-items'
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          sortOrder: parseInt(formData.sortOrder)
-        })
-      })
-
-      if (response.ok) {
-        toast.success(editingItem ? 'Menu item updated!' : 'Menu item created!')
-        fetchMenuItems()
-        resetForm()
-      } else {
-        toast.error('Failed to save menu item')
-      }
-    } catch (error) {
-      toast.error('Failed to save menu item')
-    }
-  }
-
-  const handleEdit = (item: MenuItem) => {
-    setEditingItem(item)
-    setFormData({
-      name: item.name,
-      description: item.description,
-      price: item.price.toString(),
-      categoryId: item.category.id,
-      isVeg: item.isVeg,
-      isAvailable: item.isAvailable,
-      sortOrder: item.sortOrder.toString()
-    })
-    setIsDialogOpen(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this menu item?')) {
-      try {
-        const response = await fetch(`/api/menu-items/${id}`, {
-          method: 'DELETE'
-        })
-
-        if (response.ok) {
-          toast.success('Menu item deleted!')
-          fetchMenuItems()
-        } else {
-          toast.error('Failed to delete menu item')
-        }
-      } catch (error) {
-        toast.error('Failed to delete menu item')
-      }
-    }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      categoryId: '',
-      isVeg: false,
-      isAvailable: true,
-      sortOrder: ''
-    })
-    setEditingItem(null)
-    setIsDialogOpen(false)
-  }
-
-  const filteredItems = menuItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || item.category.id === selectedCategory
-    return matchesSearch && matchesCategory
-  })
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Menu Management</h1>
-          <p className="text-muted-foreground">Manage menu items, categories, and pricing</p>
+    <>
+      <Header title="Menu Management" description="Add, edit, and organize menu items and categories." />
+      <div className="container mx-auto py-8 space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-800">Total Items</p>
+                  <p className="text-2xl font-bold text-blue-900">{mockMenuItems.length}</p>
+                </div>
+                <Menu className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-800">Active Items</p>
+                  <p className="text-2xl font-bold text-green-900">{mockMenuItems.filter(item => item.isActive).length}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-800">Categories</p>
+                  <p className="text-2xl font-bold text-orange-900">4</p>
+                </div>
+                <Menu className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Menu Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingItem ? 'Update the menu item details' : 'Create a new menu item for your restaurant'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Item Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="e.g., Chicken Biryani"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (₹)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    placeholder="299"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Brief description of the dish"
-                  required
-                />
+        {/* Menu Items */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Menu Items</CardTitle>
+                <CardDescription>Manage your restaurant menu items</CardDescription>
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={formData.categoryId} onValueChange={(value) => setFormData({...formData, categoryId: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sortOrder">Sort Order</Label>
-                  <Input
-                    id="sortOrder"
-                    type="number"
-                    value={formData.sortOrder}
-                    onChange={(e) => setFormData({...formData, sortOrder: e.target.value})}
-                    placeholder="1"
-                    min="1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Options</Label>
-                  <div className="flex space-x-4 pt-2">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.isVeg}
-                        onChange={(e) => setFormData({...formData, isVeg: e.target.checked})}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Vegetarian</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.isAvailable}
-                        onChange={(e) => setFormData({...formData, isAvailable: e.target.checked})}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Available</span>
-                    </label>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {mockMenuItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{item.name}</h3>
+                      <Badge variant={item.isVeg ? 'default' : 'secondary'}>
+                        {item.isVeg ? '🟢 Veg' : '🔴 Non-Veg'}
+                      </Badge>
+                      <Badge variant={item.isActive ? 'default' : 'secondary'}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                    <p className="text-sm text-muted-foreground">Category: {item.category.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-lg">{formatCurrency(item.price)}</p>
+                    <div className="flex gap-2 mt-2">
+                      <Button size="sm" variant="outline">Edit</Button>
+                      <Button size="sm" variant="outline">Delete</Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingItem ? 'Update' : 'Create'} Item
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search menu items..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Menu Items Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Menu className="h-5 w-5" />
-            Menu Items ({filteredItems.length})
-          </CardTitle>
-          <CardDescription>
-            Manage your restaurant's menu items and pricing
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-gray-500">{item.description}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{item.category.name}</TableCell>
-                  <TableCell className="flex items-center gap-1">
-                    <DollarSign className="h-3 w-3" />
-                    {item.price}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={item.isVeg ? "default" : "secondary"}>
-                      {item.isVeg ? "Veg" : "Non-Veg"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={item.isAvailable ? "default" : "outline"}>
-                      {item.isAvailable ? "Available" : "Unavailable"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(item)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(item.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Categories */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Categories</CardTitle>
+                <CardDescription>Manage menu categories</CardDescription>
+              </div>
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {['Appetizers', 'Main Course', 'Desserts', 'Beverages'].map((category) => (
+                <div key={category} className="p-4 border rounded-lg text-center">
+                  <h3 className="font-medium">{category}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {mockMenuItems.filter(item => item.category.name === category).length} items
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   )
 }
