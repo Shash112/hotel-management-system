@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/simple-seed.ts",
+    "db:setup": "node scripts/setup-production-db.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test"
